@@ -8,7 +8,7 @@ MongoDB Sessions
 [![Supports PHP 8.0+](https://raw.githubusercontent.com/xp-framework/web/master/static/php-8_0plus.svg)](http://php.net/)
 [![Latest Stable Version](https://poser.pugx.org/xp-forge/mongo-sessions/version.png)](https://packagist.org/packages/xp-forge/mongo-sessions)
 
-[MongoDB](https://www.mongodb.com/)-based sessions implementation
+[MongoDB](https://www.mongodb.com/)-based [sessions implementation](https://github.com/xp-forge/sessions).
 
 Example
 -------
