@@ -11,7 +11,7 @@ use web\session\mongo\Session;
  * @test  web.session.mongdo.unittest.MongoTest
  */
 class InMongoDB extends Sessions {
-  private $protocol;
+  private $collection;
 
   /** Creates a new MongoDB session */
   public function __construct(Collection $collection) {
