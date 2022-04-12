@@ -1,7 +1,7 @@
 <?php namespace web\session\mongo\unittest;
 
+use com\mongodb\result\{Insert, Update, Delete, Cursor};
 use com\mongodb\{Collection, Document, Session, Int64, ObjectId};
-use com\mongodb\result\{Insert, Delete, Cursor};
 use unittest\{Assert, Expect, Test};
 use web\session\{ISession, InMongoDB, SessionInvalid};
 
@@ -23,8 +23,9 @@ class MongoTest {
       }
 
       public function find($query= [], Session $session= null): Cursor {
-        $result= $this->lookup[$query->string()] ?? null;
 
+        // Query will always be an ObjectId
+        $result= $this->lookup[$query->string()] ?? null;
         return new Cursor(null, $session, [
           'firstBatch' => [$result->properties()],
           'id'         => new Int64(0),
@@ -32,16 +33,40 @@ class MongoTest {
         ]);
       }
 
-      public function delete($query, Session $session= null): Delete {
-        unset($this->lookup[$query->string()]);
-
-        return new Delete([], [$query]);
-      }
-
       public function insert($arg, Session $session= null): Insert {
+
+        // Argument will always be a Document
         $arg['_id']= ObjectId::create();
         $this->lookup[$arg['_id']->string()]= $arg;
         return new Insert([], [$arg['_id']]);
+      }
+
+      public function update($query, $statements, Session $session= null): Update {
+
+        // Query will always be an ObjectId
+        $result= &$this->lookup[$query->string()];
+        switch (key($statements)) {
+          case '$set': 
+            foreach ($statements['$set'] as $name => $value) {
+              $result[$name]= $value;
+            }
+            break;
+
+          case '$unset': 
+            foreach ($statements['$unset'] as $name => $_) {
+              unset($result[$name]);
+            }
+            break;
+        }
+
+        return new Update([]);
+      }
+
+      public function delete($query, Session $session= null): Delete {
+
+        // Query will always be an ObjectId
+        unset($this->lookup[$query->string()]);
+        return new Delete([], [$query]);
       }
     };
   }
@@ -102,8 +127,23 @@ class MongoTest {
     Assert::equals('test', $session->value('user'));
   }
 
-  #[Test, Expect(SessionInvalid::class)]
-  public function invalid_session() {
+  #[Test]
+  public function register() {
+    $id= ObjectId::create();
+    $collection= $this->collection([new Document([
+      '_id'      => $id,
+      '_created' => time(),
+    ])]);
+
+    $sessions= new InMongoDB($collection);
+    $session= $sessions->open($id->string());
+    $session->register('user', 'test');
+
+    Assert::equals('test', $session->value('user'));
+  }
+
+  #[Test]
+  public function remove() {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([
       '_id'      => $id,
@@ -113,8 +153,23 @@ class MongoTest {
 
     $sessions= new InMongoDB($collection);
     $session= $sessions->open($id->string());
+    $session->remove('user');
+
+    Assert::null($session->value('user'));
+  }
+
+  #[Test, Expect(SessionInvalid::class)]
+  public function invalid_session() {
+    $id= ObjectId::create();
+    $collection= $this->collection([new Document([
+      '_id'      => $id,
+      '_created' => time(),
+    ])]);
+
+    $sessions= new InMongoDB($collection);
+    $session= $sessions->open($id->string());
     $session->destroy();
 
-    $session->value('user');
+    $session->value('@@any@@');
   }
 }
