@@ -3,6 +3,13 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+## 0.3.0 / 2022-04-13
+
+* Implemented feature suggested in issue #1: Use `findAndModify` MongoDB
+  command to update session in the database *and* refresh the read view
+  at the same time
+  (@thekid)
+
 ## 0.2.0 / 2022-04-12
 
 * Fixed PHP 8.2 compatibility - @thekid

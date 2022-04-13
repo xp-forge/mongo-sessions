@@ -2,6 +2,7 @@
 
 use web\session\ISession;
 use web\session\SessionInvalid;
+use com\mongodb\Document;
 
 class Session implements ISession {
   private $sessions, $collection, $document, $timeout, $new;
@@ -55,6 +56,30 @@ class Session implements ISession {
   }
 
   /**
+   * Update document in MongoDB with the given operations. Used by
+   * `register()` and `remove()`.
+   *
+   * @param  [:var] $operations
+   * @return com.mongodb.Document
+   * @throws web.session.SessionInvalid
+   */
+  private function update($operations) {
+    $result= $this->collection->command('findAndModify', [
+      'query'  => ['_id' => $this->document->id()],
+      'update' => $operations,
+      'new'    => true,
+      'upsert' => false,
+    ]);
+
+    // This means the session was deleted in the database in the meantime!
+    if (!$result['lastErrorObject']['updatedExisting']) {
+      throw new SessionInvalid($this->id());
+    }
+
+    return new Document($result['value']);
+  }
+
+  /**
    * Registers a value - writing it to the session
    *
    * @param  string $name
@@ -67,8 +92,7 @@ class Session implements ISession {
       throw new SessionInvalid($this->id());
     }
 
-    $this->document[$name]= $value;
-    $this->collection->update($this->document->id(), ['$set' => [$name => $value]]);
+    $this->document= $this->update(['$set' => [$name => $value]]);
   }
 
   /**
@@ -99,8 +123,7 @@ class Session implements ISession {
       throw new SessionInvalid($this->id());
     }
 
-    unset($this->document[$name]);
-    $this->collection->update($this->document->id(), ['$unset' => [$name => '']]);
+    $this->document= $this->update(['$unset' => [$name => '']]);
   }
 
   /**

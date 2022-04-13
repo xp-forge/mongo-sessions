@@ -41,25 +41,28 @@ class MongoTest {
         return new Insert([], [$arg['_id']]);
       }
 
-      public function update($query, $statements, Session $session= null): Update {
+      public function command($name, array $params= [], Session $session= null) {
 
-        // Query will always be an ObjectId
-        $result= &$this->lookup[$query->string()];
-        switch (key($statements)) {
+        // Command will be "findAndModify", query will always be an ObjectId
+        $result= &$this->lookup[$params['query']['_id']->string()];
+        switch (key($params['update'])) {
           case '$set': 
-            foreach ($statements['$set'] as $name => $value) {
+            foreach ($params['update']['$set'] as $name => $value) {
               $result[$name]= $value;
             }
             break;
 
           case '$unset': 
-            foreach ($statements['$unset'] as $name => $_) {
+            foreach ($params['update']['$unset'] as $name => $_) {
               unset($result[$name]);
             }
             break;
         }
 
-        return new Update([]);
+        return [
+          'lastErrorObject' => ['n' => 1, 'updatedExisting' => true],
+          'value'           => $result->properties()
+        ];
       }
 
       public function delete($query, Session $session= null): Delete {
