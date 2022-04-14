@@ -24,8 +24,13 @@ class InMongoDB extends Sessions {
    * @return web.session.ISession
    */
   public function create() {
-    $this->collection->insert($values= new Document(['_created' => time()]));
-    return new Session($this, $this->collection, $values, time() + $this->duration, true);
+    $now= time();
+    $this->collection->insert($values= new Document(['_created' => $now]));
+
+    // Clean up expired sessions while we're here.
+    $this->collection->delete(['_created' => ['$lt' => $now - $this->duration]]);
+
+    return new Session($this, $this->collection, $values, $now + $this->duration, true);
   }
 
   /**
