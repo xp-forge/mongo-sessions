@@ -3,6 +3,10 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+## 0.4.0 / 2022-04-19
+
+* Merged PR #2: Cleanup sessions during create - @thekid
+
 ## 0.3.0 / 2022-04-13
 
 * Implemented feature suggested in issue #1: Use `findAndModify` MongoDB
