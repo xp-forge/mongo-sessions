@@ -67,8 +67,16 @@ class MongoTest {
 
       public function delete($query, Session $session= null): Delete {
 
-        // Query will always be an ObjectId
-        unset($this->lookup[$query->string()]);
+        // Query will either be an ObjectId or [_created => [$lt => time()]]
+        if ($query instanceof ObjectId) {
+          unset($this->lookup[$query->string()]);
+        } else {
+          foreach ($this->lookup as $id => $document) {
+            if ($document['_created'] < $query['_created']['$lt']) {
+              unset($this->lookup[$id]);
+            }
+          }
+        }
         return new Delete([], [$query]);
       }
     };
