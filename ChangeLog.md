@@ -3,6 +3,10 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+## 0.4.1 / 2022-06-11
+
+* Added compatibility with `xp-forge/sessions` version 3.0 - @thekid
+
 ## 0.4.0 / 2022-04-19
 
 * Merged PR #2: Cleanup sessions during create - @thekid
