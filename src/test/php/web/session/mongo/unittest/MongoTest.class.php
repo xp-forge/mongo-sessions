@@ -70,14 +70,17 @@ class MongoTest {
         // Query will either be an ObjectId or [_created => [$lt => time()]]
         if ($query instanceof ObjectId) {
           unset($this->lookup[$query->string()]);
+          $n= 1;
         } else {
+          $n= 0;
           foreach ($this->lookup as $id => $document) {
             if ($document['_created'] < $query['_created']['$lt']) {
               unset($this->lookup[$id]);
+              $n++;
             }
           }
         }
-        return new Delete([], [$query]);
+        return new Delete(['n' => $n], [$query]);
       }
     };
   }
@@ -182,5 +185,24 @@ class MongoTest {
     $session->destroy();
 
     $session->value('@@any@@');
+  }
+
+  #[Test]
+  public function run_gc() {
+    $sessions= new InMongoDB($this->collection([]));
+    Assert::equals(0, $sessions->gc());
+  }
+
+  #[Test]
+  public function gc_returns_number_of_expired_sessions() {
+    $duration= 3600;
+    $id= ObjectId::create();
+    $collection= $this->collection([new Document([
+      '_id'      => $id,
+      '_created' => time() - $duration - 1,
+    ])]);
+
+    $sessions= (new InMongoDB($collection))->lasting($duration);
+    Assert::equals(1, $sessions->gc());
   }
 }
