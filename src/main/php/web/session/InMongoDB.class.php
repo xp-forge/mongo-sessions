@@ -18,6 +18,11 @@ class InMongoDB extends Sessions {
     $this->collection= $collection;
   }
 
+  /** @return int */
+  public function gc() {
+    return $this->collection->delete(['_created' => ['$lt' => time() - $this->duration]])->deleted();
+  }
+
   /**
    * Creates a session
    *
@@ -28,7 +33,7 @@ class InMongoDB extends Sessions {
     $this->collection->insert($values= new Document(['_created' => $now]));
 
     // Clean up expired sessions while we're here.
-    $this->collection->delete(['_created' => ['$lt' => $now - $this->duration]]);
+    $this->gc();
 
     return new Session($this, $this->collection, $values, $now + $this->duration, true);
   }
