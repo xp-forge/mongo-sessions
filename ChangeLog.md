@@ -3,6 +3,13 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+## 1.0.0 / 2022-06-11
+
+The first major release was created after using this library in production
+for more than two months.
+
+* Merged PR #4: Add `InMongoDB::gc()` to run garbage collection - @thekid
+
 ## 0.4.1 / 2022-06-11
 
 * Added compatibility with `xp-forge/sessions` version 3.0 - @thekid
