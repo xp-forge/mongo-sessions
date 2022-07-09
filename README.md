@@ -20,3 +20,23 @@ use com\mongodb\MongoConnection;
 $conn= new MongoConnection('mongo://localhost');
 $sessions= new InMongoDB($conn->collection('test', 'sessions'));
 ``` 
+
+Session expiry
+--------------
+By default, cleaning up expired sessions is handled by the implementation. For a more performant version, use [TTL indexes](https://www.mongodb.com/docs/manual/core/index-ttl/) as follows.
+
+### Setup collection
+Issue the following in MongoDB shell:
+
+```javascript
+db.sessions.createIndex({"_created": 1}, {expireAfterSeconds: 86400})
+```
+
+### Add TTL flag
+Pass `InMongoDB::USING_TTL` as second parameter to the *InMongoDB* constructor:
+
+```php
+$sessions= new InMongoDB($conn->collection('test', 'sessions'), InMongoDB::USING_TTL);
+```
+
+This will use the *expireAfterSeconds* value as session duration.
