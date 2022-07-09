@@ -93,7 +93,8 @@ class InMongoDB extends Sessions {
     if ($values= $this->collection->find($oid)->first()) {
 
       // Check for expired sessions not already taken care by TTL...
-      $timeout= $values['_created']->getTime() + $this->duration;
+      $created= $values['_created'] instanceof Date ? $values['_created']->getTime() : $values['_created'];
+      $timeout= $created + $this->duration;
       if ($timeout > time()) return new Session($this, $this->collection, $values, $timeout, false);
 
       // ...and delete them
