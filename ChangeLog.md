@@ -3,6 +3,12 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+## 1.2.0 / 2022-07-09
+
+* Upgraded `xp-forge/mongodb` dependency to version 1.4.0, using `read`
+  semantics for the *listIndexes* command
+  (@thekid)
+
 ## 1.1.0 / 2022-07-09
 
 * Implemented #3: Support TTL indexes. Using these delegates removing

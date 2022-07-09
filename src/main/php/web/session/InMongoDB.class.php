@@ -25,8 +25,7 @@ class InMongoDB extends Sessions {
 
     // Adapt timeout from TTL index
     if ($useTTL) {
-      $list= $this->collection->command('listIndexes', []);
-      foreach ($list['cursor']['firstBatch'] as $index) {
+      foreach ($this->collection->run('listIndexes', [], 'read')->cursor() as $index) {
         if ('_created' === key($index['key'])) {
           $this->lasting($index['expireAfterSeconds']);
           $this->useTTL= true;

@@ -1,6 +1,6 @@
 <?php namespace web\session\mongo\unittest;
 
-use com\mongodb\result\{Insert, Update, Delete, Cursor};
+use com\mongodb\result\{Insert, Update, Delete, Cursor, Run};
 use com\mongodb\{Collection, Document, Session, Int64, ObjectId};
 use lang\IllegalStateException;
 use unittest\{Assert, Expect, Test};
@@ -43,10 +43,10 @@ class MongoTest {
         return new Insert([], [$arg['_id']]);
       }
 
-      public function command($name, array $params= [], Session $session= null) {
+      public function run($name, array $params= [], $method= 'write', Session $session= null) {
         switch ($name) {
           case 'listIndexes':
-            return [
+            return new Run(null, null, ['body' => [
               'ok'     => 1,
               'cursor' => [
                 'id'         => new Int64(0),
@@ -58,7 +58,7 @@ class MongoTest {
                   'expireAfterSeconds' => 1800,
                 ]]
               ]
-            ];
+            ]]);
 
           case 'findAndModify':
 
@@ -78,10 +78,10 @@ class MongoTest {
                 break;
             }
 
-            return [
+            return new Run(null, null, ['body' => [
               'lastErrorObject' => ['n' => 1, 'updatedExisting' => true],
               'value'           => $result->properties()
-            ];
+            ]]);
 
           default:
             throw new IllegalStateException('Unreachable code - command "'.$name.'"');

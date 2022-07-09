@@ -1,8 +1,8 @@
 <?php namespace web\session\mongo;
 
+use com\mongodb\Document;
 use web\session\ISession;
 use web\session\SessionInvalid;
-use com\mongodb\Document;
 
 class Session implements ISession {
   private $sessions, $collection, $document, $timeout, $new;
@@ -64,19 +64,21 @@ class Session implements ISession {
    * @throws web.session.SessionInvalid
    */
   private function update($operations) {
-    $result= $this->collection->command('findAndModify', [
+    $arguments= [
       'query'  => ['_id' => $this->document->id()],
       'update' => $operations,
       'new'    => true,
       'upsert' => false,
-    ]);
+    ];
 
-    // This means the session was deleted in the database in the meantime!
-    if (!$result['lastErrorObject']['updatedExisting']) {
+    // If nothing was updated this means the session was deleted in the database
+    // in the meantime, e.g. manually, by a cleanup procedure, or by a TTL index.
+    $value= $this->collection->run('findAndModify', $arguments)->value();
+    if (!$value['lastErrorObject']['updatedExisting']) {
       throw new SessionInvalid($this->id());
     }
 
-    return new Document($result['value']);
+    return new Document($value['value']);
   }
 
   /**
