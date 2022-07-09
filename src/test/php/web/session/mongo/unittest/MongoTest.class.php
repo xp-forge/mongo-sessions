@@ -150,6 +150,21 @@ class MongoTest {
   }
 
   #[Test]
+  public function open_old_session() {
+    $id= ObjectId::create();
+    $collection= $this->collection([new Document([
+      '_id'      => $id,
+      '_created' => time(),
+    ])]);
+
+    $sessions= new InMongoDB($collection);
+    $session= $sessions->open($id->string());
+
+    Assert::instance(ISession::class, $session);
+    Assert::true($collection->present($session->id()));
+  }
+
+  #[Test]
   public function value() {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([
