@@ -2,7 +2,9 @@
 
 use com\mongodb\result\{Insert, Update, Delete, Cursor};
 use com\mongodb\{Collection, Document, Session, Int64, ObjectId};
+use lang\IllegalStateException;
 use unittest\{Assert, Expect, Test};
+use util\{Date, Dates};
 use web\session\{ISession, InMongoDB, SessionInvalid};
 
 class MongoTest {
@@ -42,27 +44,48 @@ class MongoTest {
       }
 
       public function command($name, array $params= [], Session $session= null) {
+        switch ($name) {
+          case 'listIndexes':
+            return [
+              'ok'     => 1,
+              'cursor' => [
+                'id'         => new Int64(0),
+                'ns'         => 'test.sessions',
+                'firstBatch' => [[
+                  'v'                  => 2,
+                  'key'                => ['_created' => 1],
+                  'name'               => '_created_1',
+                  'expireAfterSeconds' => 1800,
+                ]]
+              ]
+            ];
 
-        // Command will be "findAndModify", query will always be an ObjectId
-        $result= &$this->lookup[$params['query']['_id']->string()];
-        switch (key($params['update'])) {
-          case '$set': 
-            foreach ($params['update']['$set'] as $name => $value) {
-              $result[$name]= $value;
-            }
-            break;
+          case 'findAndModify':
 
-          case '$unset': 
-            foreach ($params['update']['$unset'] as $name => $_) {
-              unset($result[$name]);
+            // Query will always be an ObjectId
+            $result= &$this->lookup[$params['query']['_id']->string()];
+            switch (key($params['update'])) {
+              case '$set': 
+                foreach ($params['update']['$set'] as $name => $value) {
+                  $result[$name]= $value;
+                }
+                break;
+
+              case '$unset': 
+                foreach ($params['update']['$unset'] as $name => $_) {
+                  unset($result[$name]);
+                }
+                break;
             }
-            break;
+
+            return [
+              'lastErrorObject' => ['n' => 1, 'updatedExisting' => true],
+              'value'           => $result->properties()
+            ];
+
+          default:
+            throw new IllegalStateException('Unreachable code - command "'.$name.'"');
         }
-
-        return [
-          'lastErrorObject' => ['n' => 1, 'updatedExisting' => true],
-          'value'           => $result->properties()
-        ];
       }
 
       public function delete($query, Session $session= null): Delete {
@@ -74,7 +97,7 @@ class MongoTest {
         } else {
           $n= 0;
           foreach ($this->lookup as $id => $document) {
-            if ($document['_created'] < $query['_created']['$lt']) {
+            if ($document['_created']->isBefore($query['_created']['$lt'])) {
               unset($this->lookup[$id]);
               $n++;
             }
@@ -101,7 +124,7 @@ class MongoTest {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([
       '_id'      => $id,
-      '_created' => time()
+      '_created' => Date::now(),
     ])]);
 
     $sessions= new InMongoDB($collection);
@@ -116,7 +139,7 @@ class MongoTest {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([
       '_id'      => $id,
-      '_created' => time() - 3601
+      '_created' => Dates::subtract(Date::now(), 3601),
     ])]);
 
     $sessions= (new InMongoDB($collection))->lasting(3600);
@@ -131,7 +154,7 @@ class MongoTest {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([
       '_id'      => $id,
-      '_created' => time(),
+      '_created' => Date::now(),
       'user'     => 'test',
     ])]);
 
@@ -146,7 +169,7 @@ class MongoTest {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([
       '_id'      => $id,
-      '_created' => time(),
+      '_created' => Date::now(),
     ])]);
 
     $sessions= new InMongoDB($collection);
@@ -161,7 +184,7 @@ class MongoTest {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([
       '_id'      => $id,
-      '_created' => time(),
+      '_created' => Date::now(),
       'user'     => 'test',
     ])]);
 
@@ -177,7 +200,7 @@ class MongoTest {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([
       '_id'      => $id,
-      '_created' => time(),
+      '_created' => Date::now(),
     ])]);
 
     $sessions= new InMongoDB($collection);
@@ -199,10 +222,35 @@ class MongoTest {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([
       '_id'      => $id,
-      '_created' => time() - $duration - 1,
+      '_created' => Dates::subtract(Date::now(), $duration + 1),
     ])]);
 
     $sessions= (new InMongoDB($collection))->lasting($duration);
     Assert::equals(1, $sessions->gc());
+  }
+
+  #[Test]
+  public function expiry_time_fetched_from_ttl_index() {
+    $sessions= new InMongoDB($this->collection([]), InMongoDB::USING_TTL);
+    Assert::equals(1800, $sessions->duration());
+  }
+
+  #[Test, Expect(IllegalStateException::class)]
+  public function expiry_time_cannot_be_modified_when_ttl_indexes_are_used() {
+    $sessions= new InMongoDB($this->collection([]), InMongoDB::USING_TTL);
+    $sessions->lasting(3600);
+  }
+
+  #[Test]
+  public function gc_is_a_noop_when_ttl_indexes_are_used() {
+    $duration= 3600;
+    $id= ObjectId::create();
+    $collection= $this->collection([new Document([
+      '_id'      => $id,
+      '_created' => Dates::subtract(Date::now(), $duration + 1),
+    ])]);
+
+    $sessions= (new InMongoDB($collection, InMongoDB::USING_TTL));
+    Assert::equals(0, $sessions->gc());
   }
 }

@@ -3,6 +3,11 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+* Implemented #3: Support TTL indexes. Using these delegates removing
+  expired sessions to the MongoDB server, speeding up session creation.
+  See https://www.mongodb.com/docs/manual/core/index-ttl/
+  (@thekid)
+
 ## 1.0.0 / 2022-06-11
 
 The first major release was created after using this library in production
