@@ -3,6 +3,8 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+* Merged PR #5: Migrate to new testing library - @thekid
+
 ## 1.2.0 / 2022-07-09
 
 * Upgraded `xp-forge/mongodb` dependency to version 1.4.0, using `read`
