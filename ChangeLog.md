@@ -3,6 +3,9 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+## 1.3.0 / 2023-08-19
+
+* Made this library compatible with `xp-forge/mongodb` 2.0.0 - @thekid
 * Merged PR #5: Migrate to new testing library - @thekid
 
 ## 1.2.0 / 2022-07-09
