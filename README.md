@@ -17,7 +17,7 @@ Example
 use web\session\InMongoDB;
 use com\mongodb\MongoConnection;
 
-$conn= new MongoConnection('mongo://localhost');
+$conn= new MongoConnection('mongodb://localhost');
 $sessions= new InMongoDB($conn->collection('test', 'sessions'));
 ``` 
 
