@@ -78,6 +78,7 @@ class InMongoDB extends Sessions {
     // Clean up expired sessions while we're here.
     $this->gc();
 
+    $doc['values']= [];
     return new Session($this, $this->collection, $doc, $now + $this->duration, true);
   }
 
