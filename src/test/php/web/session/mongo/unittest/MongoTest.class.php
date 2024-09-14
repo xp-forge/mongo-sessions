@@ -2,7 +2,7 @@
 
 use com\mongodb\{Collection, Document, ObjectId, Options};
 use lang\IllegalStateException;
-use test\{Assert, Expect, Test};
+use test\{Assert, Expect, Test, Values};
 use util\{Date, Dates};
 use web\session\{ISession, InMongoDB, SessionInvalid};
 
@@ -34,6 +34,7 @@ class MongoTest {
     $collection= $this->collection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
+      'values'   => [],
     ])]);
 
     $sessions= new InMongoDB($collection);
@@ -49,6 +50,7 @@ class MongoTest {
     $collection= $this->collection([new Document([
       '_id'      => $id,
       '_created' => Dates::subtract(Date::now(), 3601),
+      'values'   => [],
     ])]);
 
     $sessions= (new InMongoDB($collection))->lasting(3600);
@@ -71,6 +73,7 @@ class MongoTest {
 
     Assert::instance(ISession::class, $session);
     Assert::true($collection->present($session->id()));
+    Assert::equals([], $session->keys());
   }
 
   #[Test]
@@ -79,7 +82,7 @@ class MongoTest {
     $collection= $this->collection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
-      'user'     => 'test',
+      'values'   => ['user' => 'test'],
     ])]);
 
     $sessions= new InMongoDB($collection);
@@ -89,11 +92,43 @@ class MongoTest {
   }
 
   #[Test]
+  public function values_migrated_from_old_session_layout() {
+    $id= ObjectId::create();
+    $collection= $this->collection([new Document([
+      '_id'      => $id,
+      '_created' => Date::now(),
+      'user'     => 'test',
+      '%host'    => 'example.com',
+    ])]);
+
+    $sessions= new InMongoDB($collection);
+    $session= $sessions->open($id->string());
+
+    Assert::equals(['test', 'example.com'], [$session->value('user'), $session->value('%host')]);
+  }
+
+  #[Test]
+  public function keys() {
+    $id= ObjectId::create();
+    $collection= $this->collection([new Document([
+      '_id'      => $id,
+      '_created' => Date::now(),
+      'values'   => ['user' => 'test'],
+    ])]);
+
+    $sessions= new InMongoDB($collection);
+    $session= $sessions->open($id->string());
+
+    Assert::equals(['user'], $session->keys());
+  }
+
+  #[Test]
   public function register() {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
+      'values'   => [],
     ])]);
 
     $sessions= new InMongoDB($collection);
@@ -109,7 +144,7 @@ class MongoTest {
     $collection= $this->collection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
-      'user'     => 'test',
+      'values'   => ['user' => 'test'],
     ])]);
 
     $sessions= new InMongoDB($collection);
@@ -125,6 +160,7 @@ class MongoTest {
     $collection= $this->collection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
+      'values'   => [],
     ])]);
 
     $sessions= new InMongoDB($collection);
@@ -147,6 +183,7 @@ class MongoTest {
     $collection= $this->collection([new Document([
       '_id'      => $id,
       '_created' => Dates::subtract(Date::now(), $duration + 1),
+      'values'   => [],
     ])]);
 
     $sessions= (new InMongoDB($collection))->lasting($duration);
@@ -172,9 +209,25 @@ class MongoTest {
     $collection= $this->collection([new Document([
       '_id'      => $id,
       '_created' => Dates::subtract(Date::now(), $duration + 1),
+      'values'   => [],
     ])]);
 
     $sessions= (new InMongoDB($collection, InMongoDB::USING_TTL));
     Assert::equals(0, $sessions->gc());
+  }
+
+  #[Test, Values([['user.name', 'user%2ename'], ['%user', '%25user'], ['%5fuser', '%255fuser']])]
+  public function special_characters_are_escaped($key, $stored) {
+    $id= ObjectId::create();
+    $collection= $this->collection([new Document([
+      '_id'      => $id,
+      '_created' => Date::now(),
+      'values'   => [$stored => 'test'],
+    ])]);
+
+    $sessions= new InMongoDB($collection);
+    $session= $sessions->open($id->string());
+
+    Assert::equals('test', $session->value($key));
   }
 }

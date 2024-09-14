@@ -59,13 +59,22 @@ class CollectionV1 extends Collection {
         switch (key($params['update'])) {
           case '$set': 
             foreach ($params['update']['$set'] as $name => $value) {
-              $result[$name]= $value;
+              $ptr= &$result;
+              foreach (explode('.', $name) as $segment) {
+                $ptr= &$ptr[$segment];
+              }
+              $ptr= $value;
             }
             break;
 
           case '$unset': 
             foreach ($params['update']['$unset'] as $name => $_) {
-              unset($result[$name]);
+              $ptr= &$result;
+              $segments= explode('.', $name);
+              for ($i= 0; $i < sizeof($segments) - 1; $i++) {
+                $ptr= &$ptr[$segments[$i]];
+              }
+              unset($ptr[$segments[$i]]);
             }
             break;
         }
