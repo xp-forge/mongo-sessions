@@ -5,6 +5,7 @@ use web\session\ISession;
 use web\session\SessionInvalid;
 
 class Session implements ISession {
+  const ENCODE= ['%' => '%25', '.' => '%2e'];
   private $sessions, $collection, $document, $timeout, $new;
 
   /**
@@ -49,8 +50,8 @@ class Session implements ISession {
     }
 
     $r= [];
-    foreach ($this->document->properties() as $key => $_) {
-      '_' === $key[0] || $r[]= $key;
+    foreach ($this->document['values'] as $key => $_) {
+      $r[]= rawurldecode($key);
     }
     return $r;
   }
@@ -59,14 +60,16 @@ class Session implements ISession {
    * Update document in MongoDB with the given operations. Used by
    * `register()` and `remove()`.
    *
-   * @param  [:var] $operations
+   * @param  string $operation
+   * @param  string $name
+   * @param  var $value
    * @return com.mongodb.Document
    * @throws web.session.SessionInvalid
    */
-  private function update($operations) {
+  private function update($operation, $name, $value) {
     $arguments= [
       'query'  => ['_id' => $this->document->id()],
-      'update' => $operations,
+      'update' => [$operation => ['values.'.strtr($name, self::ENCODE) => $value]],
       'new'    => true,
       'upsert' => false,
     ];
@@ -94,7 +97,7 @@ class Session implements ISession {
       throw new SessionInvalid($this->id());
     }
 
-    $this->document= $this->update(['$set' => [$name => $value]]);
+    $this->document= $this->update('$set', $name, $value);
   }
 
   /**
@@ -110,7 +113,7 @@ class Session implements ISession {
       throw new SessionInvalid($this->id());
     }
 
-    return $this->document[$name] ?? $default;
+    return $this->document['values'][strtr($name, self::ENCODE)] ?? $default;
   }
 
   /**
@@ -125,7 +128,7 @@ class Session implements ISession {
       throw new SessionInvalid($this->id());
     }
 
-    $this->document= $this->update(['$unset' => [$name => '']]);
+    $this->document= $this->update('$unset', $name, '');
   }
 
   /**

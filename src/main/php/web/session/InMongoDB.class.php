@@ -73,7 +73,7 @@ class InMongoDB extends Sessions {
    */
   public function create() {
     $now= time();
-    $this->collection->insert($values= new Document(['_created' => new Date($now)]));
+    $this->collection->insert($values= new Document(['_created' => new Date($now), 'values' => []]));
 
     // Clean up expired sessions while we're here.
     $this->gc();
@@ -89,12 +89,23 @@ class InMongoDB extends Sessions {
    */
   public function open($id) {
     $oid= new ObjectId($id);
-    if ($values= $this->collection->find($oid)->first()) {
+    if ($doc= $this->collection->find($oid)->first()) {
 
       // Check for expired sessions not already taken care by TTL...
-      $created= $values['_created'] instanceof Date ? $values['_created']->getTime() : $values['_created'];
+      $created= $doc['_created'] instanceof Date ? $doc['_created']->getTime() : $doc['_created'];
       $timeout= $created + $this->duration;
-      if ($timeout > time()) return new Session($this, $this->collection, $values, $timeout, false);
+      if ($timeout > time()) {
+
+        // Migrate old session layout
+        if (!isset($doc['values'])) {
+          $values= [];
+          foreach ($doc->properties() as $key => $value) {
+            '_' === $key[0] || $values[$key]= $value;
+          }
+          $doc['values']= $values;
+        }
+        return new Session($this, $this->collection, $doc, $timeout, false);
+      }
 
       // ...and delete them
       $this->collection->delete($oid);
