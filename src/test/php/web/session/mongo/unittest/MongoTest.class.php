@@ -66,7 +66,6 @@ class MongoTest {
     $collection= $this->collection([new Document([
       '_id'      => $id,
       '_created' => time(),
-      'values'   => [],
     ])]);
 
     $sessions= new InMongoDB($collection);
@@ -74,6 +73,7 @@ class MongoTest {
 
     Assert::instance(ISession::class, $session);
     Assert::true($collection->present($session->id()));
+    Assert::equals([], $session->keys());
   }
 
   #[Test]
@@ -105,6 +105,21 @@ class MongoTest {
     $session= $sessions->open($id->string());
 
     Assert::equals(['test', 'example.com'], [$session->value('user'), $session->value('%host')]);
+  }
+
+  #[Test]
+  public function keys() {
+    $id= ObjectId::create();
+    $collection= $this->collection([new Document([
+      '_id'      => $id,
+      '_created' => Date::now(),
+      'values'   => ['user' => 'test'],
+    ])]);
+
+    $sessions= new InMongoDB($collection);
+    $session= $sessions->open($id->string());
+
+    Assert::equals(['user'], $session->keys());
   }
 
   #[Test]
