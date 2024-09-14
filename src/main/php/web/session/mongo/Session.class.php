@@ -20,9 +20,18 @@ class Session implements ISession {
   public function __construct($sessions, $collection, $document, $timeout, $new= false) {
     $this->sessions= $sessions;
     $this->collection= $collection;
-    $this->document= $document;
     $this->timeout= $timeout;
     $this->new= $new;
+
+    // Migrate old session layout
+    if (!isset($document['values'])) {
+      $values= [];
+      foreach ($document->properties() as $key => $value) {
+        '_' === $key[0] || $values[strtr($key, self::ENCODE)]= $value;
+      }
+      $document['values']= $values;
+    }
+    $this->document= $document;
   }
 
   /** @return string */

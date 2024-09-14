@@ -98,13 +98,13 @@ class MongoTest {
       '_id'      => $id,
       '_created' => Date::now(),
       'user'     => 'test',
-      'domain'   => 'example.com',
+      '%host'    => 'example.com',
     ])]);
 
     $sessions= new InMongoDB($collection);
     $session= $sessions->open($id->string());
 
-    Assert::equals(['test', 'example.com'], [$session->value('user'), $session->value('domain')]);
+    Assert::equals(['test', 'example.com'], [$session->value('user'), $session->value('%host')]);
   }
 
   #[Test]
@@ -207,7 +207,7 @@ class MongoTest {
     $collection= $this->collection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
-      $stored    => 'test',
+      'values'   => [$stored => 'test'],
     ])]);
 
     $sessions= new InMongoDB($collection);
