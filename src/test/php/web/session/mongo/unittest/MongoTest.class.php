@@ -2,7 +2,7 @@
 
 use com\mongodb\{Collection, Document, ObjectId, Options};
 use lang\IllegalStateException;
-use test\{Assert, Expect, Test};
+use test\{Assert, Expect, Test, Values};
 use util\{Date, Dates};
 use web\session\{ISession, InMongoDB, SessionInvalid};
 
@@ -176,5 +176,20 @@ class MongoTest {
 
     $sessions= (new InMongoDB($collection, InMongoDB::USING_TTL));
     Assert::equals(0, $sessions->gc());
+  }
+
+  #[Test, Values([['$user', '%24user'], ['user.name', 'user%2ename'], ['%user', '%25user'], ['_id', '%5fid']])]
+  public function special_characters_are_escaped($key, $stored) {
+    $id= ObjectId::create();
+    $collection= $this->collection([new Document([
+      '_id'      => $id,
+      '_created' => Date::now(),
+      $stored    => 'test',
+    ])]);
+
+    $sessions= new InMongoDB($collection);
+    $session= $sessions->open($id->string());
+
+    Assert::equals('test', $session->value($key));
   }
 }
