@@ -3,6 +3,12 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+## 2.2.0 / 2024-09-14
+
+* Merged PR #8: Refactor document substructure, fixing issue #6 (handling
+  of special characters `.` and `$`) while doing so.
+  (@thekid)
+
 ## 2.1.0 / 2024-03-24
 
 * Made compatible with XP 12 - @thekid
