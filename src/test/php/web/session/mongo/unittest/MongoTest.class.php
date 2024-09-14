@@ -216,7 +216,7 @@ class MongoTest {
     Assert::equals(0, $sessions->gc());
   }
 
-  #[Test, Values([['user.name', 'user%2ename'], ['%user', '%25user']])]
+  #[Test, Values([['user.name', 'user%2ename'], ['%user', '%25user'], ['%5fuser', '%255fuser']])]
   public function special_characters_are_escaped($key, $stored) {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([
