@@ -90,23 +90,11 @@ class InMongoDB extends Sessions {
    */
   public function open($id) {
     $oid= new ObjectId($id);
-    if ($doc= $this->collection->find($oid)->first()) {
+    if (($doc= $this->collection->find($oid)->first()) && isset($doc['_created'], $doc['values'])) {
 
       // Check for expired sessions not already taken care by TTL...
-      $created= $doc['_created'] instanceof Date ? $doc['_created']->getTime() : $doc['_created'];
-      $timeout= $created + $this->duration;
+      $timeout= $doc['_created']->getTime() + $this->duration;
       if ($timeout > time()) {
-
-        // Migrate session layout with top-level keys to values substructure
-        if (!isset($doc['values'])) {
-          $values= [];
-          foreach ($doc->properties() as $key => $value) {
-            '_' === $key[0] || $values[strtr($key, Session::ENCODE)]= $value;
-          }
-
-          $doc= $this->collection->modify($oid, ['$set' => ['values' => $values]])->document();
-        }
-
         return new Session($this, $this->collection, $doc, $timeout, false);
       }
 

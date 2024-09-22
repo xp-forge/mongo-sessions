@@ -60,18 +60,18 @@ class Session implements ISession {
    * Update document in MongoDB with the given operations. Used by
    * `register()` and `remove()`.
    *
-   * @param  string $operation
+   * @param  string $op
    * @param  string $name
    * @param  var $value
    * @return com.mongodb.Document
    * @throws web.session.SessionInvalid
    */
-  private function update($operation, $name, $value) {
+  private function update($op, $name, $value) {
 
     // If nothing was updated this means the session was deleted in the database
     // in the meantime, e.g. manually, by a cleanup procedure, or by a TTL index.
     return $this->collection
-      ->modify($this->document->id(), [$operation => ['values.'.strtr($name, self::ENCODE) => $value]])
+      ->modify($this->document->id(), [$op => ['values.'.strtr($name, self::ENCODE) => $value]])
       ->document() ?? new SessionInvalid($this->id())
     ;
   }

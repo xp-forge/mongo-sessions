@@ -52,22 +52,6 @@ class MongoTest {
   }
 
   #[Test]
-  public function open_old_session() {
-    $id= ObjectId::create();
-    $collection= new TestingCollection([new Document([
-      '_id'      => $id,
-      '_created' => time(),
-    ])]);
-
-    $sessions= new InMongoDB($collection);
-    $session= $sessions->open($id->string());
-
-    Assert::instance(ISession::class, $session);
-    Assert::true($collection->present($session->id()));
-    Assert::equals([], $session->keys());
-  }
-
-  #[Test]
   public function value() {
     $id= ObjectId::create();
     $collection= new TestingCollection([new Document([
@@ -80,41 +64,6 @@ class MongoTest {
     $session= $sessions->open($id->string());
 
     Assert::equals('test', $session->value('user'));
-  }
-
-  #[Test]
-  public function values_migrated_from_old_session_layout() {
-    $id= ObjectId::create();
-    $collection= new TestingCollection([new Document([
-      '_id'      => $id,
-      '_created' => Date::now(),
-      'user'     => 'test',
-      '%host'    => 'example.com',
-    ])]);
-
-    $sessions= new InMongoDB($collection);
-    $session= $sessions->open($id->string());
-
-    Assert::equals(['test', 'example.com'], [$session->value('user'), $session->value('%host')]);
-  }
-
-  #[Test]
-  public function migrated_values_persisted() {
-    $id= ObjectId::create();
-    $collection= new TestingCollection([new Document([
-      '_id'      => $id,
-      '_created' => Date::now(),
-      'old'      => 'value',
-    ])]);
-
-    $sessions= new InMongoDB($collection);
-
-    $session= $sessions->open($id->string());
-    $session->register('new', 'test');
-    $session->close();
-
-    $session= $sessions->open($id->string());
-    Assert::equals(['value', 'test'], [$session->value('old'), $session->value('new')]);
   }
 
   #[Test]
