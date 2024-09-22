@@ -3,6 +3,11 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+## 2.2.1 / 2024-09-22
+
+* Correctly persist migrated substructure, fixing session modifications
+  (@thekid)
+
 ## 2.2.0 / 2024-09-14
 
 * Merged PR #8: Refactor document substructure, fixing issue #6 (handling
