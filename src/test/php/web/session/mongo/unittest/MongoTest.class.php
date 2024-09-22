@@ -52,6 +52,21 @@ class MongoTest {
   }
 
   #[Test]
+  public function open_session_without_values_substructure() {
+    $id= ObjectId::create();
+    $collection= new TestingCollection([new Document([
+      '_id'      => $id,
+      '_created' => Dates::subtract(Date::now(), 3601),
+    ])]);
+
+    $sessions= (new InMongoDB($collection))->lasting(3600);
+    $session= $sessions->open($id->string());
+
+    Assert::null($session);
+    Assert::true($collection->present($id->string()));
+  }
+
+  #[Test]
   public function value() {
     $id= ObjectId::create();
     $collection= new TestingCollection([new Document([
