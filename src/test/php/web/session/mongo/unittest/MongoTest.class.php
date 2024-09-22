@@ -108,6 +108,25 @@ class MongoTest {
   }
 
   #[Test]
+  public function migrated_values_persisted() {
+    $id= ObjectId::create();
+    $collection= $this->collection([new Document([
+      '_id'      => $id,
+      '_created' => Date::now(),
+      'old'      => 'value',
+    ])]);
+
+    $sessions= new InMongoDB($collection);
+
+    $session= $sessions->open($id->string());
+    $session->register('new', 'test');
+    $session->close();
+
+    $session= $sessions->open($id->string());
+    Assert::equals(['value', 'test'], [$session->value('old'), $session->value('new')]);
+  }
+
+  #[Test]
   public function keys() {
     $id= ObjectId::create();
     $collection= $this->collection([new Document([

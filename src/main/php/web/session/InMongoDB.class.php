@@ -97,13 +97,20 @@ class InMongoDB extends Sessions {
       $timeout= $created + $this->duration;
       if ($timeout > time()) {
 
-        // Migrate old session layout
+        // Migrate session layout with top-level keys to values substructure
         if (!isset($doc['values'])) {
           $values= [];
           foreach ($doc->properties() as $key => $value) {
             '_' === $key[0] || $values[strtr($key, Session::ENCODE)]= $value;
           }
-          $doc['values']= $values;
+
+          $run= $this->collection->run('findAndModify', [
+            'query'  => ['_id' => $doc->id()],
+            'update' => ['$set' => ['values' => $values]],
+            'new'    => true,
+            'upsert' => false,
+          ]);
+          $doc= new Document($run->value()['value']);
         }
 
         return new Session($this, $this->collection, $doc, $timeout, false);
