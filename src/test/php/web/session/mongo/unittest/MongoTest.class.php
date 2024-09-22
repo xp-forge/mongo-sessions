@@ -1,6 +1,6 @@
 <?php namespace web\session\mongo\unittest;
 
-use com\mongodb\{Collection, Document, ObjectId, Options};
+use com\mongodb\{Collection, Document, ObjectId};
 use lang\IllegalStateException;
 use test\{Assert, Expect, Test, Values};
 use util\{Date, Dates};
@@ -8,18 +8,9 @@ use web\session\{ISession, InMongoDB, SessionInvalid};
 
 class MongoTest {
 
-  /** Returns a MongoDB collection with documents */
-  private function collection($documents) {
-    if (class_exists(Options::class)) {
-      return new CollectionV2($documents);
-    } else {
-      return new CollectionV1($documents);
-    }
-  }
-
   #[Test]
   public function create_session() {
-    $collection= $this->collection([]);
+    $collection= new TestingCollection([]);
 
     $sessions= new InMongoDB($collection);
     $session= $sessions->create();
@@ -31,7 +22,7 @@ class MongoTest {
   #[Test]
   public function open_session() {
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
       'values'   => [],
@@ -47,7 +38,7 @@ class MongoTest {
   #[Test]
   public function open_expired_session() {
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Dates::subtract(Date::now(), 3601),
       'values'   => [],
@@ -63,7 +54,7 @@ class MongoTest {
   #[Test]
   public function open_old_session() {
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => time(),
     ])]);
@@ -79,7 +70,7 @@ class MongoTest {
   #[Test]
   public function value() {
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
       'values'   => ['user' => 'test'],
@@ -94,7 +85,7 @@ class MongoTest {
   #[Test]
   public function values_migrated_from_old_session_layout() {
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
       'user'     => 'test',
@@ -110,7 +101,7 @@ class MongoTest {
   #[Test]
   public function migrated_values_persisted() {
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
       'old'      => 'value',
@@ -129,7 +120,7 @@ class MongoTest {
   #[Test]
   public function keys() {
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
       'values'   => ['user' => 'test'],
@@ -144,7 +135,7 @@ class MongoTest {
   #[Test]
   public function register() {
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
       'values'   => [],
@@ -160,7 +151,7 @@ class MongoTest {
   #[Test]
   public function remove() {
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
       'values'   => ['user' => 'test'],
@@ -176,7 +167,7 @@ class MongoTest {
   #[Test, Expect(SessionInvalid::class)]
   public function invalid_session() {
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
       'values'   => [],
@@ -191,7 +182,7 @@ class MongoTest {
 
   #[Test]
   public function run_gc() {
-    $sessions= new InMongoDB($this->collection([]));
+    $sessions= new InMongoDB(new TestingCollection([]));
     Assert::equals(0, $sessions->gc());
   }
 
@@ -199,7 +190,7 @@ class MongoTest {
   public function gc_returns_number_of_expired_sessions() {
     $duration= 3600;
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Dates::subtract(Date::now(), $duration + 1),
       'values'   => [],
@@ -211,13 +202,13 @@ class MongoTest {
 
   #[Test]
   public function expiry_time_fetched_from_ttl_index() {
-    $sessions= new InMongoDB($this->collection([]), InMongoDB::USING_TTL);
+    $sessions= new InMongoDB(new TestingCollection([]), InMongoDB::USING_TTL);
     Assert::equals(1800, $sessions->duration());
   }
 
   #[Test, Expect(IllegalStateException::class)]
   public function expiry_time_cannot_be_modified_when_ttl_indexes_are_used() {
-    $sessions= new InMongoDB($this->collection([]), InMongoDB::USING_TTL);
+    $sessions= new InMongoDB(new TestingCollection([]), InMongoDB::USING_TTL);
     $sessions->lasting(3600);
   }
 
@@ -225,7 +216,7 @@ class MongoTest {
   public function gc_is_a_noop_when_ttl_indexes_are_used() {
     $duration= 3600;
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Dates::subtract(Date::now(), $duration + 1),
       'values'   => [],
@@ -238,7 +229,7 @@ class MongoTest {
   #[Test, Values([['user.name', 'user%2ename'], ['%user', '%25user'], ['%5fuser', '%255fuser']])]
   public function special_characters_are_escaped($key, $stored) {
     $id= ObjectId::create();
-    $collection= $this->collection([new Document([
+    $collection= new TestingCollection([new Document([
       '_id'      => $id,
       '_created' => Date::now(),
       'values'   => [$stored => 'test'],

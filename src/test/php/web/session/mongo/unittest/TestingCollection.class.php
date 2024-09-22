@@ -3,7 +3,7 @@
 use com\mongodb\result\{Cursor, Delete, Insert, Run, Update};
 use com\mongodb\{Collection, Document, Int64, ObjectId, Options};
 
-class CollectionV2 extends Collection {
+class TestingCollection extends Collection {
   private $lookup= [];
 
   public function __construct($documents) {
