@@ -67,21 +67,13 @@ class Session implements ISession {
    * @throws web.session.SessionInvalid
    */
   private function update($operation, $name, $value) {
-    $arguments= [
-      'query'  => ['_id' => $this->document->id()],
-      'update' => [$operation => ['values.'.strtr($name, self::ENCODE) => $value]],
-      'new'    => true,
-      'upsert' => false,
-    ];
 
     // If nothing was updated this means the session was deleted in the database
     // in the meantime, e.g. manually, by a cleanup procedure, or by a TTL index.
-    $value= $this->collection->run('findAndModify', $arguments)->value();
-    if (!$value['lastErrorObject']['updatedExisting']) {
-      throw new SessionInvalid($this->id());
-    }
-
-    return new Document($value['value']);
+    return $this->collection
+      ->modify($this->document->id(), [$operation => ['values.'.strtr($name, self::ENCODE) => $value]])
+      ->document() ?? new SessionInvalid($this->id())
+    ;
   }
 
   /**

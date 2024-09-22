@@ -1,7 +1,8 @@
 <?php namespace web\session\mongo\unittest;
 
-use com\mongodb\result\{Cursor, Delete, Insert, Run, Update};
+use com\mongodb\result\{Cursor, Delete, Insert, Run, Update, Modification};
 use com\mongodb\{Collection, Document, Int64, ObjectId, Options};
+use lang\IllegalStateException;
 
 class TestingCollection extends Collection {
   private $lookup= [];
@@ -35,6 +36,42 @@ class TestingCollection extends Collection {
     return new Insert([], [$arg['_id']]);
   }
 
+  public function modify($query, $arg, $upsert= false, Options... $options): Modification {
+
+    // Query will always be an ObjectId
+    $oid= $query->string();
+    $result= $this->lookup[$oid]->properties();
+    switch (key($arg)) {
+      case '$set':
+        foreach ($arg['$set'] as $name => $value) {
+          $ptr= &$result;
+          foreach (explode('.', $name) as $segment) {
+            $ptr= &$ptr[$segment];
+          }
+          $ptr= $value;
+        }
+        $this->lookup[$oid]= new Document($result);
+        break;
+
+      case '$unset':
+        foreach ($arg['$unset'] as $name => $_) {
+          $ptr= &$result;
+          $segments= explode('.', $name);
+          for ($i= 0; $i < sizeof($segments) - 1; $i++) {
+            $ptr= &$ptr[$segments[$i]];
+          }
+          unset($ptr[$segments[$i]]);
+        }
+        $this->lookup[$oid]= new Document($result);
+        break;
+    }
+
+    return new Modification([
+      'lastErrorObject' => ['n' => 1, 'updatedExisting' => true],
+      'value'           => $this->lookup[$oid]->properties()
+    ]);
+  }
+
   public function run($name, array $params= [], $method= 'write', Options... $options) {
     switch ($name) {
       case 'listIndexes':
@@ -50,41 +87,6 @@ class TestingCollection extends Collection {
               'expireAfterSeconds' => 1800,
             ]]
           ]
-        ]]);
-
-      case 'findAndModify':
-
-        // Query will always be an ObjectId
-        $oid= $params['query']['_id']->string();
-        $result= $this->lookup[$oid]->properties();
-        switch (key($params['update'])) {
-          case '$set': 
-            foreach ($params['update']['$set'] as $name => $value) {
-              $ptr= &$result;
-              foreach (explode('.', $name) as $segment) {
-                $ptr= &$ptr[$segment];
-              }
-              $ptr= $value;
-            }
-            $this->lookup[$oid]= new Document($result);
-            break;
-
-          case '$unset': 
-            foreach ($params['update']['$unset'] as $name => $_) {
-              $ptr= &$result;
-              $segments= explode('.', $name);
-              for ($i= 0; $i < sizeof($segments) - 1; $i++) {
-                $ptr= &$ptr[$segments[$i]];
-              }
-              unset($ptr[$segments[$i]]);
-            }
-            $this->lookup[$oid]= new Document($result);
-            break;
-        }
-
-        return new Run(null, null, ['body' => [
-          'lastErrorObject' => ['n' => 1, 'updatedExisting' => true],
-          'value'           => $result
         ]]);
 
       default:
