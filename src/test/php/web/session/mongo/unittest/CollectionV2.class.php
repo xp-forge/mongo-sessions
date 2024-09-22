@@ -55,7 +55,8 @@ class CollectionV2 extends Collection {
       case 'findAndModify':
 
         // Query will always be an ObjectId
-        $result= &$this->lookup[$params['query']['_id']->string()];
+        $oid= $params['query']['_id']->string();
+        $result= $this->lookup[$oid]->properties();
         switch (key($params['update'])) {
           case '$set': 
             foreach ($params['update']['$set'] as $name => $value) {
@@ -65,6 +66,7 @@ class CollectionV2 extends Collection {
               }
               $ptr= $value;
             }
+            $this->lookup[$oid]= new Document($result);
             break;
 
           case '$unset': 
@@ -76,12 +78,13 @@ class CollectionV2 extends Collection {
               }
               unset($ptr[$segments[$i]]);
             }
+            $this->lookup[$oid]= new Document($result);
             break;
         }
 
         return new Run(null, null, ['body' => [
           'lastErrorObject' => ['n' => 1, 'updatedExisting' => true],
-          'value'           => $result->properties()
+          'value'           => $result
         ]]);
 
       default:
