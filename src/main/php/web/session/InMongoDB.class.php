@@ -104,7 +104,7 @@ class InMongoDB extends Sessions {
             '_' === $key[0] || $values[strtr($key, Session::ENCODE)]= $value;
           }
 
-          $doc= $this->collection->modify($doc->id(), ['$set' => ['values' => $values]])->document();
+          $doc= $this->collection->modify($oid, ['$set' => ['values' => $values]])->document();
         }
 
         return new Session($this, $this->collection, $doc, $timeout, false);
