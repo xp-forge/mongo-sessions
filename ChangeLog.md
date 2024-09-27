@@ -3,6 +3,16 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+## 3.0.0 / ????-??-??
+
+This major release drops support for old session layouts with keys in
+the document root. Sessions with these will be regarded invalid, users
+will need to re-authenticate.
+
+* **Heads up**: Dropped support for PHP < 7.4, see xp-framework/rfc#343
+  (@thekid)
+* Merged PR #9: Drop support for MongoDB v1 - @thekid
+
 ## 2.2.1 / 2024-09-22
 
 * Correctly persist migrated substructure, fixing session modifications
@@ -19,6 +29,9 @@ MongoDB Sessions change log
 * Made compatible with XP 12 - @thekid
 
 ## 2.0.0 / 2024-02-04
+
+The second major release drops support for old XP versions, adding forward
+compatibility with the upcoming PHP version at the same time.
 
 * Implemented xp-framework/rfc#341: Drop XP <= 9 compatibility - @thekid
 * Added PHP 8.4 to the test matrix - @thekid
