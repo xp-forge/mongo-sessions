@@ -3,7 +3,7 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
-## 3.0.0 / ????-??-??
+## 3.0.0 / 2025-01-25
 
 This major release drops support for old session layouts with keys in
 the document root. Sessions with these will be regarded invalid, users
@@ -11,6 +11,7 @@ will need to re-authenticate.
 
 * **Heads up**: Dropped support for PHP < 7.4, see xp-framework/rfc#343
   (@thekid)
+* Added support for MongoDB v3 - connecting lazily by default - @thekid
 * Merged PR #9: Drop support for MongoDB v1 - @thekid
 
 ## 2.2.1 / 2024-09-22

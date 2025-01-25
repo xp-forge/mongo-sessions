@@ -8,7 +8,7 @@
   "require" : {
     "xp-framework/core": "^12.0 | ^11.0 | ^10.0",
     "xp-forge/sessions": "^3.0",
-    "xp-forge/mongodb": "^2.2",
+    "xp-forge/mongodb": "^3.0 | ^2.2",
     "php" : ">=7.4.0"
   },
   "require-dev" : {
