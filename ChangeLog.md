@@ -3,6 +3,13 @@ MongoDB Sessions change log
 
 ## ?.?.? / ????-??-??
 
+## 4.0.0 / 2026-01-04
+
+This needs to be a major release due to breaking changes in dependencies:
+
+* **Heads up:** Require `xp-forge/sessions` version 4.0+ - @thekid
+* Added PHP 8.5 and PHP 8.6 to the test matrix - @thekid
+
 ## 3.0.0 / 2025-01-25
 
 This major release drops support for old session layouts with keys in

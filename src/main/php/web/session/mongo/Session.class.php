@@ -1,12 +1,11 @@
 <?php namespace web\session\mongo;
 
 use com\mongodb\Document;
-use web\session\ISession;
-use web\session\SessionInvalid;
+use web\session\{Persistence, SessionInvalid};
 
-class Session implements ISession {
+class Session extends Persistence {
   const ENCODE= ['%' => '%25', '.' => '%2e'];
-  private $sessions, $collection, $document, $timeout, $new;
+  private $collection, $document;
 
   /**
    * Creates a new file-based session
@@ -14,28 +13,22 @@ class Session implements ISession {
    * @param  web.session.Sessions $sessions
    * @param  com.mongodb.Collection $collection
    * @param  com.mongodb.Document $document
-   * @param  int $timeout
-   * @param  bool $new
+   * @param  int $expires
+   * @param  bool $detached
    */
-  public function __construct($sessions, $collection, $document, $timeout, $new= false) {
-    $this->sessions= $sessions;
+  public function __construct($sessions, $collection, $document, $expires, $detached= false) {
+    parent::__construct($sessions, $detached, $expires);
     $this->collection= $collection;
     $this->document= $document;
-    $this->timeout= $timeout;
-    $this->new= $new;
   }
 
   /** @return string */
   public function id() { return $this->document->id()->string(); }
 
-  /** @return bool */
-  public function valid() {
-    return time() < $this->timeout;
-  }
-
   /** @return void */
   public function destroy() {
-    $this->timeout= time() - 1;
+    $this->expires= time() - 1;
+    $this->detached= false;
     $this->collection->delete($this->document->id());
   }
 
@@ -45,7 +38,7 @@ class Session implements ISession {
    * @return string[]
    */
   public function keys() {
-    if (time() >= $this->timeout) {
+    if (time() >= $this->expires) {
       throw new SessionInvalid($this->id());
     }
 
@@ -85,7 +78,7 @@ class Session implements ISession {
    * @throws web.session.SessionInvalid
    */
   public function register($name, $value) {
-    if (time() >= $this->timeout) {
+    if (time() >= $this->expires) {
       throw new SessionInvalid($this->id());
     }
 
@@ -101,7 +94,7 @@ class Session implements ISession {
    * @throws web.session.SessionInvalid
    */
   public function value($name, $default= null) {
-    if (time() >= $this->timeout) {
+    if (time() >= $this->expires) {
       throw new SessionInvalid($this->id());
     }
 
@@ -116,34 +109,10 @@ class Session implements ISession {
    * @throws web.session.SessionInvalid
    */
   public function remove($name) {
-    if (time() >= $this->timeout) {
+    if (time() >= $this->expires) {
       throw new SessionInvalid($this->id());
     }
 
     $this->document= $this->update('$unset', $name, '');
-  }
-
-  /**
-   * Closes this session
-   *
-   * @return void
-   */
-  public function close() {
-    // NOOP
-  }
-
-  /**
-   * Transmits this session to the response
-   *
-   * @param  web.Response $response
-   * @return void
-   */
-  public function transmit($response) {
-    if ($this->new) {
-      $this->sessions->attach($this, $response);
-      $this->new= false;
-    } else if (time() >= $this->timeout) {
-      $this->sessions->detach($this, $response);
-    }
   }
 }
